@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Rallyhold</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Azeret+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+.tabs{display:flex;gap:8px;margin:22px 0 16px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;padding:7px 15px;font-family:var(--font-body);font-size:13.5px;font-weight:600;color:var(--text-dim);cursor:pointer}
+.tabs button.on{background:var(--court);color:#fff;border-color:var(--court)}
+textarea.bulk{width:100%;min-height:150px;font-family:var(--font-mono);font-size:12px}
+.mini{font-size:12px;padding:5px 10px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="modebar" id="modebar"></div>
+<header><div class="wrap nav">
+  <a class="brand" href="index.html"><span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#fff" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="21" stroke="#fff" stroke-width="2"/><circle cx="8" cy="9" r="2.1" fill="#fff"/></svg></span>Rallyhold</a>
+  <div class="nav-cta"><button class="btn" id="signout" style="display:none">Sign out</button></div>
+</div></header>
+
+<main class="wrap" style="padding:34px 22px 60px">
+  <div class="panel" id="loginPanel" style="max-width:420px">
+    <h1 style="font-size:24px">Admin sign-in</h1>
+    <p style="color:var(--text-dim);font-size:13.5px;margin:8px 0 16px">Sign in with an email on the <code>admins</code> allow-list.</p>
+    <form class="form" id="loginForm" style="padding:0;border:0;background:none;max-width:none">
+      <div class="fld"><label>Email</label><input type="email" name="email" required></div>
+      <div class="fld"><label>Password</label><input type="password" name="password" required></div>
+      <button class="btn primary" type="submit">Sign in</button>
+      <div class="msg err" id="loginMsg"></div>
+    </form>
+  </div>
+
+  <div id="dash" style="display:none">
+    <h1 style="font-size:28px;margin-bottom:6px">Dashboard</h1>
+    <p style="color:var(--text-dim);font-size:13.5px" id="who"></p>
+
+    <div class="tabs" id="tabs">
+      <button data-tab="leads" class="on">Leads</button>
+      <button data-tab="subs">Submissions</button>
+      <button data-tab="courts">Listings</button>
+      <button data-tab="import">Bulk import</button>
+    </div>
+
+    <section data-panel="leads">
+      <div class="panel" style="overflow-x:auto"><table class="admin" id="leads"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Message</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section data-panel="subs" style="display:none">
+      <div class="panel" style="overflow-x:auto"><table class="admin" id="subs"><thead><tr><th>When</th><th>Name</th><th>City</th><th>Country</th><th>Email</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section data-panel="courts" style="display:none">
+      <div class="panel" style="overflow-x:auto"><table class="admin" id="courts"><thead><tr><th>Name</th><th>City</th><th>Sport</th><th>Rating</th><th>Featured</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section data-panel="import" style="display:none">
+      <div class="panel">
+        <h2 style="font-size:18px">Bulk import courts</h2>
+        <p style="color:var(--text-dim);font-size:13.5px;margin:6px 0 12px">Paste a JSON array of court objects (the shape produced by <code>scripts/fetch_apify.py</code> or <code>courts.json</code>). Upserts on <code>slug</code>.</p>
+        <textarea class="bulk" id="bulkText" placeholder='[{"name":"Riverside Pickleball Club","city":"Austin","cc":"US","lat":30.27,"lng":-97.74,"sportKey":"pickleball","courts":6,"rating":4.7,"reviews":120}]'></textarea>
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+          <button class="btn primary" id="bulkBtn">Import</button>
+          <span class="msg" id="bulkMsg"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer><div class="wrap"><div class="foot-note">Rallyhold admin. Requires Supabase Auth and an <code>admins</code> row for your user.</div></div></footer>
+
+<script src="config.js"></script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const CFG = window.RALLYHOLD_CONFIG || {};
+const LIVE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = t => new Date(t).toLocaleString();
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+
+document.addEventListener("DOMContentLoaded", () => {
+  const el = $("#modebar");
+  el.className = "modebar" + (LIVE ? " live" : "");
+  el.textContent = LIVE ? "Live \u2014 Supabase admin" : "Demo mode \u2014 set config.js to enable the admin dashboard.";
+});
+
+if (!LIVE) {
+  $("#loginPanel").innerHTML = "<h1 style='font-size:22px'>Not configured</h1><p style='color:var(--text-dim)'>Add your Supabase URL and anon key in config.js to use the admin dashboard.</p>";
+} else {
+  const db = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+  $("#tabs").addEventListener("click", e => {
+    const b = e.target.closest("button[data-tab]"); if (!b) return;
+    document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll("[data-panel]").forEach(p => p.style.display = p.dataset.panel === b.dataset.tab ? "block" : "none");
+  });
+
+  async function load() {
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) return;
+    $("#loginPanel").style.display = "none";
+    $("#dash").style.display = "block";
+    $("#signout").style.display = "inline-block";
+    $("#who").textContent = "Signed in as " + user.email;
+
+    const leads = (await db.from("leads").select("*").order("created_at", { ascending: false }).limit(100)).data || [];
+    $("#leads tbody").innerHTML = leads.map(l => `<tr><td>${fmt(l.created_at)}</td><td>${esc(l.name)}</td><td>${esc(l.email)}</td><td>${esc(l.message)}</td></tr>`).join("") || "<tr><td colspan=4>No leads yet.</td></tr>";
+
+    const subs = (await db.from("submissions").select("*").order("created_at", { ascending: false }).limit(100)).data || [];
+    $("#subs tbody").innerHTML = subs.map(s => `<tr><td>${fmt(s.created_at)}</td><td>${esc(s.name)}</td><td>${esc(s.city)}</td><td>${esc(s.country)}</td><td>${esc(s.email)}</td><td><button class="btn mini" data-approve="${s.id}">Approve</button></td></tr>`).join("") || "<tr><td colspan=6>No submissions yet.</td></tr>";
+
+    const courts = (await db.from("courts").select("id,name,sport,rating,featured,status,cities(name)").order("featured", { ascending: false }).order("rating", { ascending: false }).limit(300)).data || [];
+    $("#courts tbody").innerHTML = courts.map(c => `<tr>
+      <td>${esc(c.name)}</td><td>${esc(c.cities && c.cities.name)}</td><td>${esc(c.sport)}</td><td>${(c.rating||0).toFixed(1)}</td>
+      <td><button class="btn mini" data-feat="${c.id}" data-val="${c.featured?0:1}">${c.featured ? "Unfeature" : "Feature"}</button></td>
+      <td><button class="btn mini" data-status="${c.id}" data-val="${c.status==="published"?"hidden":"published"}">${c.status === "published" ? "Hide" : "Publish"}</button></td>
+    </tr>`).join("") || "<tr><td colspan=6>No courts yet.</td></tr>";
+  }
+
+  $("#loginForm").addEventListener("submit", async e => {
+    e.preventDefault(); const f = e.target;
+    const { error } = await db.auth.signInWithPassword({ email: f.email.value, password: f.password.value });
+    if (error) { const m = $("#loginMsg"); m.style.display = "block"; m.textContent = error.message; return; }
+    load();
+  });
+  $("#signout").addEventListener("click", async () => { await db.auth.signOut(); location.reload(); });
+
+  document.addEventListener("click", async e => {
+    const t = e.target;
+    if (!t.getAttribute) return;
+    const ap = t.getAttribute("data-approve");
+    const ft = t.getAttribute("data-feat");
+    const stt = t.getAttribute("data-status");
+    if (ap) { await db.from("submissions").update({ status: "approved" }).eq("id", ap); t.textContent = "Approved"; t.disabled = true; }
+    if (ft) { const v = t.getAttribute("data-val") === "1"; await db.from("courts").update({ featured: v }).eq("id", ft); t.textContent = v ? "Unfeature" : "Feature"; t.setAttribute("data-val", v ? "0" : "1"); }
+    if (stt) { const v = t.getAttribute("data-val"); await db.from("courts").update({ status: v }).eq("id", stt); t.textContent = v === "published" ? "Hide" : "Publish"; t.setAttribute("data-val", v === "published" ? "hidden" : "published"); }
+  });
+
+  $("#bulkBtn").addEventListener("click", async () => {
+    const msg = $("#bulkMsg");
+    let arr;
+    try { arr = JSON.parse($("#bulkText").value); } catch (e) { msg.className = "msg err"; msg.style.display="inline"; msg.textContent = "Invalid JSON: " + e.message; return; }
+    if (!Array.isArray(arr) || !arr.length) { msg.className = "msg err"; msg.style.display="inline"; msg.textContent = "Provide a non-empty JSON array."; return; }
+    const rows = arr.map(r => ({
+      name: r.name, slug: r.slug || `${slug(r.name)}-${slug(r.city||"")}`,
+      sport: r.sportKey || r.sport || "pickleball",
+      courts_count: r.courts || r.courts_count || 1,
+      indoor: !!r.indoor, outdoor: r.outdoor !== false,
+      surface: r.surface || null, price_note: r.price || null,
+      rating: r.rating || 0, reviews_count: r.reviews || r.reviews_count || 0,
+      lat: r.lat, lng: r.lng, website: r.website || null, phone: r.phone || null,
+      amenities: r.amenities || [], featured: !!r.featured, source: r.source || "manual",
+      external_id: r.external_id || null, status: "published",
+    }));
+    const { error } = await db.from("courts").upsert(rows, { onConflict: "slug" });
+    if (error) { msg.className = "msg err"; msg.style.display="inline"; msg.textContent = "Import failed: " + error.message; }
+    else { msg.className = "msg"; msg.style.display="inline"; msg.textContent = `Imported ${rows.length} courts.`; $("#bulkText").value = ""; load(); }
+  });
+
+  db.auth.getSession().then(({ data }) => { if (data.session) load(); });
+}
+</script>
+</body>
+</html>

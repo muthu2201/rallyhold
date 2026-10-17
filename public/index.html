@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rallyhold - Find pickleball and padel courts worldwide</title>
+<meta name="description" content="Rallyhold is a global directory of pickleball and padel courts. Filter by city, surface, indoor or outdoor, and plan your next game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Azeret+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="modebar" id="modebar"></div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="index.html">
+      <span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#fff" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="21" stroke="#fff" stroke-width="2"/><circle cx="8" cy="9" r="2.1" fill="#fff"/></svg></span>
+      Rallyhold
+    </a>
+    <nav class="nav-links">
+      <a href="#explore">Explore courts</a>
+      <a href="#gear">Gear</a>
+      <a href="#add">Add a court</a>
+      <a href="#advertise">Advertise</a>
+    </nav>
+    <div class="nav-cta"><a class="btn" href="#advertise">List your court</a></div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="kicker"><span class="dot"></span>Global pickleball &amp; padel directory</span>
+    <h1>Find a court <em>anywhere</em> in the world.</h1>
+    <p class="sub">Rallyhold lists pickleball and padel courts and clubs worldwide. Filter by city, surface, indoor or outdoor &mdash; then get directions and play.</p>
+    <form class="searchbar" onsubmit="return false;">
+      <input type="text" id="heroSearch" placeholder="Search a city, country or club..." aria-label="Search courts">
+      <button class="btn primary" type="button" onclick="heroGo()">Search</button>
+    </form>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sCourts">-</div><div class="l">Courts listed</div></div>
+      <div class="stat"><div class="n" id="sCountries">-</div><div class="l">Countries</div></div>
+      <div class="stat"><div class="n" id="sCities">-</div><div class="l">Cities</div></div>
+      <div class="stat"><div class="n" id="sTotal">-</div><div class="l">Total courts</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="ad ad-leader"><span class="mono">Advertisement &middot; 970x90 leaderboard</span></div></div>
+
+<main class="wrap" id="explore">
+  <div class="filters">
+    <div class="fld grow"><label for="q">Search</label><input type="text" id="q" placeholder="Club name, city or country"></div>
+    <div class="fld"><label for="country">Country</label><select id="country"><option value="">All countries</option></select></div>
+    <div class="fld"><label for="city">City</label><select id="city"><option value="">All cities</option></select></div>
+    <div class="fld"><label for="sport">Sport</label><select id="sport"><option value="">All sports</option><option value="pickleball">Pickleball</option><option value="padel">Padel</option></select></div>
+    <div class="fld"><label for="venue">Venue</label><select id="venue"><option value="">Indoor &amp; outdoor</option><option value="indoor">Indoor</option><option value="outdoor">Outdoor</option></select></div>
+    <div class="fld"><label for="sort">Sort</label><select id="sort"><option value="featured">Featured first</option><option value="rating">Top rated</option><option value="courts">Most courts</option><option value="name">Name (A-Z)</option></select></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="count" id="count"></div>
+    <div class="seg">
+      <button id="tabGrid" class="on" onclick="setView('grid')">Grid</button>
+      <button id="tabMap" onclick="setView('map')">Map</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div style="text-align:center;margin:22px 0"><button class="btn" id="more" onclick="loadMore()" style="display:none">Load more courts</button></div>
+  <div id="map"></div>
+
+  <div class="ad ad-leader" style="margin-top:26px"><span class="mono">Advertisement &middot; 970x90</span></div>
+</main>
+
+<section class="band wrap" id="gear">
+  <div class="sec-head"><h2>Gear up for the court</h2><p>Affiliate picks &mdash; we may earn a commission from links on this page.</p></div>
+  <div class="gear" id="gearGrid"></div>
+</section>
+
+<section class="wrap" id="advertise">
+  <div class="upsell">
+    <div style="flex:1;min-width:260px">
+      <h2>Own a court or club?</h2>
+      <p>Get a featured placement at the top of your city, a verified badge, and a photo gallery. Featured listings reach players actively searching for somewhere to play.</p>
+    </div>
+    <a class="btn" href="mailto:hello@rallyhold.example?subject=Featured%20listing">Get featured &mdash; from $49/mo</a>
+  </div>
+</section>
+
+<section class="band wrap" id="add">
+  <div class="sec-head"><h2>Know a court we're missing?</h2><p>Add it to the map. Free basic listings, forever.</p></div>
+  <form class="form" id="addForm">
+    <div class="row">
+      <div class="fld"><label>Court name</label><input type="text" name="name" placeholder="e.g. Riverside Pickleball Club" required></div>
+      <div class="fld"><label>City</label><input type="text" name="city" placeholder="City" required></div>
+    </div>
+    <div class="row">
+      <div class="fld"><label>Country</label><input type="text" name="country" placeholder="Country" required></div>
+      <div class="fld"><label>Your email</label><input type="email" name="email" placeholder="you@email.com" required></div>
+    </div>
+    <button class="btn primary" type="submit">Submit court</button>
+    <div class="msg" id="addMsg"></div>
+  </form>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="index.html"><span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#fff" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="21" stroke="#fff" stroke-width="2"/><circle cx="8" cy="9" r="2.1" fill="#fff"/></svg></span>Rallyhold</a>
+        <p style="color:var(--text-dim);font-size:13px;max-width:34ch;margin-top:12px">The global directory of pickleball and padel courts.</p>
+      </div>
+      <div class="cols">
+        <div><h5>Explore</h5><a href="#explore">All courts</a><a href="#explore">By country</a><a href="#explore">By city</a><a href="#gear">Gear</a></div>
+        <div><h5>Business</h5><a href="#advertise">List your court</a><a href="#advertise">Advertise</a><a href="#add">Add a court</a></div>
+        <div><h5>About</h5><a href="#top">How it works</a><a href="#top">Contact</a><a href="#top">Privacy</a></div>
+      </div>
+    </div>
+    <div class="foot-note" id="footNote"></div>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script src="sample-data.js"></script>
+<script src="app.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let ALL = [], map = null, layer = null, mapInit = false;
+const state = { q: "", country: "", city: "", sport: "", venue: "", sort: "featured", limit: 24 };
+
+const GEAR = [
+  ["Carbon power paddle", "Tournament-grade face with a wide sweet spot."],
+  ["Outdoor balls (pack of 6)", "The standard for hard courts. Durable seam."],
+  ["Padded paddle cover", "Fits two paddles and a sleeve of balls."],
+  ["Court shoes", "Grip and lateral support for quick stops."],
+];
+$("#gearGrid").innerHTML = GEAR.map(g => `
+  <div class="prod">
+    <div class="thumb"><svg width="46" height="46" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#1c6b41" stroke-width="1.6"/><circle cx="9" cy="9" r="1" fill="#1c6b41"/><circle cx="15" cy="9" r="1" fill="#1c6b41"/><circle cx="12" cy="15" r="1" fill="#1c6b41"/></svg></div>
+    <h4>${g[0]}</h4><p>${g[1]}</p>
+    <a class="btn" href="#" rel="sponsored nofollow noopener" onclick="return false;" style="text-align:center">Check price</a>
+  </div>`).join("");
+
+function fillFilters() {
+  const cs = [...new Set(ALL.map(d => d.country))].filter(Boolean).sort();
+  $("#country").innerHTML = '<option value="">All countries</option>' + cs.map(c => `<option>${esc(c)}</option>`).join("");
+  fillCities();
+}
+function fillCities() {
+  const cur = $("#city").value;
+  const cs = [...new Set(ALL.filter(d => !state.country || d.country === state.country).map(d => d.city))].filter(Boolean).sort();
+  $("#city").innerHTML = '<option value="">All cities</option>' + cs.map(c => `<option>${esc(c)}</option>`).join("");
+  if (cs.includes(cur)) $("#city").value = cur;
+}
+function filtered() {
+  let out = ALL.filter(d => {
+    if (state.country && d.country !== state.country) return false;
+    if (state.city && d.city !== state.city) return false;
+    if (state.sport && !(d.sportKey === state.sport || d.sportKey === "both")) return false;
+    if (state.venue === "indoor" && !d.indoor) return false;
+    if (state.venue === "outdoor" && !d.outdoor) return false;
+    if (state.q) {
+      const q = state.q.toLowerCase();
+      if (!((d.name + " " + d.city + " " + d.country).toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  const s = state.sort;
+  out.sort((a, b) => s === "rating" ? b.rating - a.rating : s === "courts" ? b.courts - a.courts
+    : s === "name" ? a.name.localeCompare(b.name) : (b.featured - a.featured) || (b.rating - a.rating));
+  return out;
+}
+function cardHTML(d) {
+  const tagClass = d.sportKey === "padel" ? "tag padel" : (d.sportKey === "both" ? "tag both" : "tag");
+  const venue = d.indoor && d.outdoor ? "Indoor &amp; outdoor" : (d.indoor ? "Indoor" : "Outdoor");
+  const chips = (d.amenities || []).slice(0, 5).map(a => `<span class="chip">${esc(a)}</span>`).join("");
+  return `<article class="card ${d.featured ? "feat" : ""}">
+    <div class="card-top"><span class="${tagClass}">${esc(d.sport)}</span>${d.featured ? '<span class="badge-feat">Featured</span>' : ""}</div>
+    <h3>${esc(d.name)}</h3>
+    <div class="loc">${esc(d.city)}, ${esc(d.country)}</div>
+    <div class="meta"><span><b>${d.courts}</b> courts</span><span>${venue}</span><span>${esc(d.surface)}</span></div>
+    <div class="rating"><span class="stars">${stars(d.rating)}</span><span class="r">${(d.rating || 0).toFixed(1)}</span><span class="rv">(${d.reviews})</span><span class="price">${esc(d.price)}</span></div>
+    <div class="chips">${chips}</div>
+    <div class="card-actions">
+      <a class="btn primary" href="court.html?slug=${encodeURIComponent(d.slug || d.id)}">View court</a>
+      <a class="btn" href="${dirLink(d)}" target="_blank" rel="noopener">Directions</a>
+    </div>
+  </article>`;
+}
+const AD_CARD = `<article class="card" style="border-style:dashed;align-items:center;justify-content:center;text-align:center">
+  <span class="mono" style="color:var(--text-faint)">Sponsored</span>
+  <div style="font-family:var(--font-head);font-weight:700;font-size:16px;color:var(--text-dim)">Your brand here</div>
+  <p style="color:var(--text-faint);font-size:12.5px;margin:0">Native ad slot inside the results grid.</p></article>`;
+
+function render() {
+  const rows = filtered();
+  $("#count").innerHTML = `<b>${rows.length}</b> court${rows.length === 1 ? "" : "s"} found`;
+  const shown = rows.slice(0, state.limit);
+  const g = $("#grid");
+  if (!rows.length) g.innerHTML = `<div class="empty">No courts match those filters yet.<br>Try clearing the search or picking another country.</div>`;
+  else { let html = ""; shown.forEach((d, i) => { html += cardHTML(d); if (i === 5) html += AD_CARD; }); g.innerHTML = html; }
+  $("#more").style.display = rows.length > state.limit ? "inline-block" : "none";
+  updateMap(rows);
+}
+function loadMore() { state.limit += 24; render(); }
+function refresh() { state.limit = 24; render(); }
+
+function updateMap(rows) {
+  if (!mapInit || !map) return;
+  layer.clearLayers();
+  rows.forEach(d => {
+    const color = d.sportKey === "padel" ? "#c2410c" : (d.sportKey === "both" ? "#8fb320" : "#1c6b41");
+    L.circleMarker([d.lat, d.lng], { radius: 6, color: "#fff", weight: 1.5, fillColor: color, fillOpacity: .95 })
+      .bindPopup(`<b>${esc(d.name)}</b><br>${esc(d.city)}, ${esc(d.country)}<br>${d.courts} courts &middot; ${esc(d.price)}<br><a href="court.html?slug=${encodeURIComponent(d.slug || d.id)}">View court</a>`)
+      .addTo(layer);
+  });
+}
+function initMap() {
+  if (mapInit) return;
+  if (typeof L === "undefined") return;
+  map = L.map("map", { scrollWheelZoom: false }).setView([22, 10], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+  layer = L.layerGroup().addTo(map); mapInit = true;
+}
+function setView(v) {
+  const on = v === "map";
+  $("#tabGrid").classList.toggle("on", !on); $("#tabMap").classList.toggle("on", on);
+  $("#grid").style.display = on ? "none" : "grid";
+  $("#map").classList.toggle("on", on);
+  if (on) { initMap(); if (map) setTimeout(() => map.invalidateSize(), 60); }
+  updateMap(filtered());
+}
+function heroGo() { const v = $("#heroSearch").value.trim(); state.q = v; $("#q").value = v; document.getElementById("explore").scrollIntoView({ behavior: "smooth" }); refresh(); }
+
+$("#q").addEventListener("input", e => { state.q = e.target.value; refresh(); });
+$("#country").addEventListener("change", e => { state.country = e.target.value; fillCities(); state.city = ""; $("#city").value = ""; refresh(); });
+$("#city").addEventListener("change", e => { state.city = e.target.value; refresh(); });
+$("#sport").addEventListener("change", e => { state.sport = e.target.value; refresh(); });
+$("#venue").addEventListener("change", e => { state.venue = e.target.value; refresh(); });
+$("#sort").addEventListener("change", e => { state.sort = e.target.value; refresh(); });
+$("#heroSearch").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); heroGo(); } });
+
+$("#addForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, msg = $("#addMsg"), btn = f.querySelector("button");
+  const body = { name: f.name.value, city: f.city.value, country: f.country.value, email: f.email.value };
+  try {
+    if (LIVE) { btn.disabled = true; await sbInsert("submissions", body); }
+    msg.className = "msg"; msg.style.display = "block";
+    msg.textContent = "Thanks \u2014 we'll review your submission and add it to the map.";
+    f.reset();
+  } catch (err) {
+    msg.className = "msg err"; msg.style.display = "block";
+    msg.textContent = "Could not send just now. Please try again.";
+  } finally { btn.disabled = false; }
+});
+
+(async function init() {
+  mountMode();
+  try {
+    ALL = await getCourts();
+  } catch (e) {
+    ALL = window.SAMPLE_COURTS || [];
+    console.error(e);
+  }
+  $("#sCourts").textContent = ALL.length;
+  $("#sCountries").textContent = new Set(ALL.map(d => d.country)).size;
+  $("#sCities").textContent = new Set(ALL.map(d => d.city)).size;
+  $("#sTotal").textContent = ALL.reduce((n, d) => n + (d.courts || 0), 0).toLocaleString();
+  $("#footNote").textContent = LIVE
+    ? "Live data served from Supabase. Ad and affiliate placements are placeholders."
+    : "Preview build. Listings bundled from Google Maps (via Apify). Connect Supabase in config.js to serve live data and accept submissions. Ad and affiliate placements are placeholders.";
+  fillFilters();
+  render();
+})();
+</script>
+</body>
+</html>
